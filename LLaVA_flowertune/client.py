@@ -46,6 +46,7 @@ class FlowerClient(
         self.trainset = data_module.train_dataset
         self.data_module = data_module
         self.save_path = save_path
+        self.data_collator = self.data_module["data_collator"]
         
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
@@ -58,6 +59,8 @@ class FlowerClient(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
         """Implement distributed fit function for a given client."""
+        #### MEKKY started from here:
+
         set_parameters(self.model, parameters)
 
         new_lr = cosine_annealing(
@@ -70,30 +73,64 @@ class FlowerClient(
         self.training_arguments.learning_rate = new_lr
         self.training_arguments.output_dir = self.save_path
 
-        trainer = LLaVATrainer(model=self.model,
-                tokenizer=self.tokenizer,
-                args=self.training_arguments,
-                **self.data_module)
-        
-        if list(pathlib.Path(self.train_cfg.training_arguments.output_dir).glob("checkpoint-*")):
-            results = trainer.train(resume_from_checkpoint=True)
-        else:
-            results = trainer.train()
+        trainer = SFTTrainer(
+            model=self.model,
+            args=self.training_arguments,
+            train_dataset=self.trainset,
+            dataset_text_field="text",  # need a dummy field
+            tokenizer=self.tokenizer,
+            data_collator=self.data_collator,
+            # formatting_func=self.formatting_prompts_func,
+            max_seq_length=self.train_cfg.seq_length,
+            dataset_kwargs={"skip_prepare_dataset": True},
+        )
+        # Do local training
+        results = trainer.train()
 
-        if self.model_cfg.lora_enable:
-            state_dict = get_peft_state_maybe_zero_3(
-                self.model.named_parameters(), self.training_arguments.lora_bias
-            )
-            non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
-                self.model.named_parameters()
-            )
-            if self.training_arguments.local_rank == 0 or self.training_arguments.local_rank == -1:
-                self.model.config.save_pretrained(self.training_arguments.output_dir)
-                self.model.save_pretrained(self.training_arguments.output_dir, state_dict=state_dict)
-                torch.save(non_lora_state_dict, os.path.join(self.training_arguments.output_dir, 'non_lora_trainables.bin'))
-        else:
-            safe_save_model_for_hf_trainer(trainer=trainer,
-                                        output_dir=self.training_arguments.output_dir)
+        return (
+            self.get_parameters({}),
+            len(self.trainset),
+            {"train_loss": results.training_loss},
+        )
+        
+        
+        ### Nour started from here
+        # set_parameters(self.model, parameters)
+
+        # new_lr = cosine_annealing(
+        #     int(config["current_round"]),
+        #     self.train_cfg.num_rounds,
+        #     self.train_cfg.learning_rate_max,
+        #     self.train_cfg.learning_rate_min,
+        # )
+
+        # self.training_arguments.learning_rate = new_lr
+        # self.training_arguments.output_dir = self.save_path
+
+        # trainer = LLaVATrainer(model=self.model,
+        #         tokenizer=self.tokenizer,
+        #         args=self.training_arguments,
+        #         **self.data_module)
+        
+        # if list(pathlib.Path(self.train_cfg.training_arguments.output_dir).glob("checkpoint-*")):
+        #     results = trainer.train(resume_from_checkpoint=True)
+        # else:
+        #     results = trainer.train()
+
+        # if self.model_cfg.lora_enable:
+        #     state_dict = get_peft_state_maybe_zero_3(
+        #         self.model.named_parameters(), self.training_arguments.lora_bias
+        #     )
+        #     non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
+        #         self.model.named_parameters()
+        #     )
+        #     if self.training_arguments.local_rank == 0 or self.training_arguments.local_rank == -1:
+        #         self.model.config.save_pretrained(self.training_arguments.output_dir)
+        #         self.model.save_pretrained(self.training_arguments.output_dir, state_dict=state_dict)
+        #         torch.save(non_lora_state_dict, os.path.join(self.training_arguments.output_dir, 'non_lora_trainables.bin'))
+        # else:
+        #     safe_save_model_for_hf_trainer(trainer=trainer,
+        #                                 output_dir=self.training_arguments.output_dir)
 
 
         return (

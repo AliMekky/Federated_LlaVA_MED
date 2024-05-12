@@ -67,7 +67,7 @@ def get_tokenizer(model_name: str, model_max_length: int):
     # )
     # tokenizer.pad_token = tokenizer.eos_token
 
-    #### NOUR COMMENTED HERE
+    # ### NOUR COMMENTED HERE
     # tokenizer = AutoTokenizer.from_pretrained(model_name)
     # LLAVA_CHAT_TEMPLATE = """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. {% for message in messages %}{% if message['role'] == 'user' %}USER: {% else %}ASSISTANT: {% endif %}{% for item in message['content'] %}{% if item['type'] == 'text' %}{{ item['text'] }}{% elif item['type'] == 'image' %}<image>{% endif %}{% endfor %}{% if message['role'] == 'user' %} {% else %}{{eos_token}}{% endif %}{% endfor %}"""
     # tokenizer.chat_template = LLAVA_CHAT_TEMPLATE
@@ -84,15 +84,27 @@ def get_tokenizer(model_name: str, model_max_length: int):
 
     # return tokenizer, data_collator
 
-    ### NOUR STARTED WRITING HERE
-    tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
-            cache_dir=None,
-            model_max_length=model_max_length,
-            padding_side="right",
-            use_fast=False,
-        ) 
+    # ### NOUR STARTED WRITING HERE
+    # tokenizer = AutoTokenizer.from_pretrained(
+    #         model_name,
+    #         cache_dir=None,
+    #         model_max_length=model_max_length,
+    #         padding_side="right",
+    #         use_fast=False,
+    #     ) 
 
+    # tokenizer.pad_token = tokenizer.unk_token
+    # conversation_lib.default_conversation = conversation_lib.conv_templates["v1"]
+    # return tokenizer
+
+    ### MEKKY started heree
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name,
+        cache_dir=None,
+        model_max_length=model_max_length,
+        padding_side="right",
+        use_fast=False,
+    ) 
     tokenizer.pad_token = tokenizer.unk_token
     conversation_lib.default_conversation = conversation_lib.conv_templates["v1"]
     return tokenizer
@@ -113,9 +125,12 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
                                 data_path=data_args.per_client_data_path,
                                 data_args=data_args)
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
-    return dict(train_dataset=train_dataset,
-                eval_dataset=None,
-                data_collator=data_collator)
+    returned_dict = {
+        'train_dataset': train_dataset,
+        'eval_dataset': None,
+        'data_collator': data_collator
+    }
+    return returned_dict
 
 
 class LazySupervisedDataset(Dataset):

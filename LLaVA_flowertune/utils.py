@@ -4,7 +4,7 @@ from models import get_model
 
 # Get function that will be executed by the strategy's evaluate() method
 # Here we use it to save global model checkpoints
-def get_evaluate_fn(model_cfg, save_every_round, total_round, save_path):
+def get_evaluate_fn(model_cfg, data_cfg, tokenizer, save_every_round, total_round, save_path):
     """Return an evaluation function for saving global model."""
 
     def evaluate(server_round: int, parameters, config):
@@ -13,7 +13,7 @@ def get_evaluate_fn(model_cfg, save_every_round, total_round, save_path):
             server_round == total_round or server_round % save_every_round == 0
         ):
             # Init model
-            model = get_model(model_cfg)
+            model = get_model(model_cfg, data_cfg, tokenizer)
             set_parameters(model, parameters)
 
             model.save_pretrained(f"{save_path}/peft_{server_round}")

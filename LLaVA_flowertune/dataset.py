@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from trl import DataCollatorForCompletionOnlyLM
-from transformers import AutoTokenizer, AutoProcessor, TrainingArguments, LlavaForConditionalGeneration
+from transformers import AutoTokenizer, LlavaForConditionalGeneration
+from transformers import AutoProcessor
 from LLaVA.llava import conversation as conversation_lib
 from LLaVA.llava.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from LLaVA.llava.mm_utils import tokenizer_image_token
@@ -122,7 +123,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
                                 data_args) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     train_dataset = LazySupervisedDataset(tokenizer=tokenizer,
-                                data_path=data_args.per_client_data_path,
+                                data_path=data_args["per_client_data_path"],
                                 data_args=data_args)
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     returned_dict = {
@@ -145,6 +146,8 @@ class LazySupervisedDataset(Dataset):
         self.tokenizer = tokenizer
         self.list_data_dict = list_data_dict
         self.data_args = data_args
+        self.processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf") ## changed 
+        self.processor.tokenizer = tokenizer ## changed
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -173,10 +176,11 @@ class LazySupervisedDataset(Dataset):
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
         if 'image' in sources[0]:
             image_file = self.list_data_dict[i]['image']
-            image_folder = self.data_args.image_folder
-            processor = self.data_args.image_processor
+            image_folder = self.data_args["image_folder"]
+            # processor = self.data_args["image_processor"]
+            processor = self.processor ## changed, was the line above
             image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
-            if self.data_args.image_aspect_ratio == 'pad':
+            if self.data_args["image_aspect_ratio"] == 'pad':
                 def expand2square(pil_img, background_color):
                     width, height = pil_img.size
                     if width == height:
@@ -209,9 +213,9 @@ class LazySupervisedDataset(Dataset):
         # image exist in the data
         if 'image' in self.list_data_dict[i]:
             data_dict['image'] = image
-        elif self.data_args.is_multimodal:
+        elif self.data_args["is_multimodal"]:
             # image does not exist in the data, but the model is multimodal
-            crop_size = self.data_args.image_processor.crop_size
+            crop_size = self.data_args["image_processor"].crop_size
             data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
         return data_dict
 
@@ -254,7 +258,7 @@ def preprocess_multimodal(
     sources: Sequence[str],
     data_args
 ) -> Dict:
-    is_multimodal = data_args.is_multimodal
+    is_multimodal = data_args["is_multimodal"]
     if not is_multimodal:
         return sources
 

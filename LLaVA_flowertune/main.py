@@ -55,7 +55,7 @@ def main(cfg: DictConfig) -> None:
         on_fit_config_fn=get_on_fit_config(),
         fit_metrics_aggregation_fn=fit_weighted_average,
         evaluate_fn=get_evaluate_fn(
-            cfg.model, cfg.train.save_every_round, cfg.num_rounds, save_path
+            cfg.model, cfg.data, tokenizer, cfg.train.save_every_round, cfg.num_rounds, save_path
         ),
     )
 

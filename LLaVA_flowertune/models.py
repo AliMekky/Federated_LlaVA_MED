@@ -34,9 +34,9 @@ def get_model(model_cfg: DictConfig, data_cfg: DictConfig, tokenizer):
     """
 
     ## NOUR COMMENTED HERE
-    if model_cfg.quantization == 4:
+    if model_cfg["quantization"] == 4:
         quantization_config = BitsAndBytesConfig(load_in_4bit=True)
-    elif model_cfg.quantization == 8:
+    elif model_cfg["quantization"] == 8:
         quantization_config = BitsAndBytesConfig(load_in_8bit=True)
     else:
         raise ValueError(
@@ -48,12 +48,12 @@ def get_model(model_cfg: DictConfig, data_cfg: DictConfig, tokenizer):
     #     quantization_config=quantization_config,
     #     torch_dtype=torch.bfloat16,
     # )
-    model = LlavaForConditionalGeneration.from_pretrained(model_cfg.name,
+    model = LlavaForConditionalGeneration.from_pretrained(model_cfg["name"],
                                                       quantization_config=quantization_config,
                                                       torch_dtype=torch.float16)
 
     model = prepare_model_for_kbit_training(
-        model, use_gradient_checkpointing=model_cfg.gradient_checkpointing
+        model, use_gradient_checkpointing=model_cfg["gradient_checkpointing"]
     )
 
     # peft_config = LoraConfig(

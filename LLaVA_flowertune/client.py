@@ -43,7 +43,7 @@ class FlowerClient(
         # instantiate model
         self.model = get_model(model_cfg, data_cfg, tokenizer)
         data_module = get_data_module(tokenizer, data_cfg)
-        self.trainset = data_module.train_dataset
+        self.trainset = data_module["train_dataset"]
         self.data_module = data_module
         self.save_path = save_path
         self.data_collator = self.data_module["data_collator"]
@@ -162,7 +162,7 @@ def gen_client_fn(
     def client_fn(cid: str) -> FlowerClient:
         """Create a Flower client representing a single organization."""
 
-        json_path = data_cfg.editable_path + str(partition_id) + data_cfg.extension
+        json_path = data_cfg.editable_path + str(partition_id + 1) + data_cfg.extension
         per_client_data_path = os.path.join(data_cfg.full_path, json_path)
         data_cfg["per_client_data_path"] = per_client_data_path
 

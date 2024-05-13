@@ -13,7 +13,7 @@ data:
   full_path: './data_jsons/'
   editable_path: 'train_tags_client_'
   extension: '.json'
-  image_folder: '/scratch/nshaheen/project/may_federated/train_images/'
+  image_folder: '../train_images/'
   image_aspect_ratio: 'pad'
   is_multimodal: True
   per_client_data_path: "" # temp arg to be initialized inside 
@@ -25,7 +25,7 @@ data:
 
 model:
   mm_projector_lr: 2e-5
-  name: "/scratch/nshaheen/LLAMA/llava_med_in_text_60k_FINAL" # path local to checkpoint to start training from 
+  name: "llava-hf/llava-1.5-7b-hf" # path local to checkpoint to start training from 
   quantization: 4 # 8 or 4 if you want to do quantization with BitsAndBytes
   gradient_checkpointing: True
   freeze_backbone: False
